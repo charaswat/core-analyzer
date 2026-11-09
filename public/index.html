@@ -2,60 +2,80 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-	<link rel="manifest" href="manifest.json">
-	<link rel="apple-touch-icon" href="icon.svg">
-	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-	<meta name="apple-mobile-web-app-title" content="Core-Analyzer">
-	<meta name="theme-color" content="#0a0a0a">
-
-    <title>Core-Analyzer | Precise Storm Tracking</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Core-Analyzer | Eyes of Cross Domain</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Load html2canvas สำหรับส่งรายงาน -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+	<script src="https://unpkg.com/geotiff@1.0.0-beta.7/dist-browser/geotiff.bundle.js"></script>
+	<script src="https://stuartmatthews.github.io/leaflet-geotiff/leaflet-geotiff.js"></script>
+	<!-- ถ้าเป็น Hillshade อาจต้องใช้ Plotty เพื่อช่วยไล่เฉดสี -->
+	<script src="https://unpkg.com/plotty@0.2.0/dist/plotty.min.js"></script>
+	<script src="https://stuartmatthews.github.io/leaflet-geotiff/leaflet-geotiff-plotty.js"></script>
 </head>
 <body>
     <div id="map-container">
-        <iframe id="windy-frame" src="https://embed.windy.com/embed2.html?lat=13.7&lon=100.5&zoom=5&level=surface&overlay=wind&product=ecmwf" frameborder="0"></iframe>
+        <!-- แผนที่ฐาน -->
+		<iframe id="windy-frame"
+			src="https://embed.windy.com/embed2.html?lat=13.9918&lon=110.6035&zoom=5&level=surface&overlay=wind&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=default&metricTemp=default&radarRange=-1"
+			frameborder="0">
+		</iframe>
+        <!-- เลเยอร์บรรยากาศ 4 ชั้น -->
+        <div id="layer-overlays">https://www.g
+            <iframe class="weather-layer" src="https://vertical-velocity-900hpa.charaswat.workers.dev/"></iframe>
+            <iframe class="weather-layer" src="https://vertical-velocity-850hpa.charaswat.workers.dev/"></iframe>
+            <iframe class="weather-layer" src="https://vertical-velocity-500hpa.charaswat.workers.dev/"></iframe>
+            <iframe class="weather-layer" src="https://vertical-velocity-200hpa.charaswat.workers.dev/"></iframe>
+        </div>
     </div>
 
+    <!-- กล่องสถานะ AI -->
     <div id="core-analyzer-box">
-        <div class="analyzer-status">📡 AI CORE: MONITORING (5-YEAR PROJECT)</div>
-        <div id="scan-display"></div>
+        <div class="analyzer-status">📡 AI CORE: MONITORING</div>
+        <div id="scan-display">READY: SYNCED 4 LAYERS</div>
+        <div class="log-container" id="event-log">> System Online...</div>
     </div>
 
-    <aside id="control-panel">
-        <h3>Command Center</h3>
-        <div class="control-item">
-            <label>Transparency</label>
-            <input type="range" id="opacity-ctrl" min="10" max="100" value="92">
+    <!-- แผงควบคุม -->
+	<!-- แก้ไขส่วน Command Center (บรรทัด 43-60) ให้เป็นแบบนี้ -->
+	<aside id="control-panel">
+		<h3>Command Center</h3>
+		<div class="control-item">
+			<label>Base Map</label>
+			<select id="map-select" onchange="changeBaseMap(this.value)">
+				<option value="windy">Windy Default</option>
+				<option value="google-terrain">Google Terrain</option>
+				<option value="google-satellite">Google Satellite</option>
+				<option value="canvas-dark">Muti Canvas</option>	
+				<option value="canvas-light">Light Canvas</option>
+			</select>
+			<br><br>
+			<label>Master Opacity</label>
+			<input type="range" id="opacity-ctrl" min="0" max="100" value="20">
+			<span id="opacity-val">20%</span>
+		</div>
+			<!-- ย้ายปุ่มมาไว้ตรงนี้ และตรวจสอบว่าไม่มี ID ซ้ำ -->
+		<div class="control-actions" style="display: flex; gap: 5px; flex-direction: column;">
+			<button class="btn-export" id="main-export-btn">📊 Telegram</button>
+			<button class="btn-scan" id="main-sync-btn">🔄 Global Sync</button>
+			<!-- เพิ่มปุ่ม Recenter -->
+			<button class="btn-recenter" id="main-recenter-btn" style="background: #3498db; color: white;">🏠 Recenter to Home</button>
+		</div>
+	</aside>
+    <!-- พื้นที่สำหรับ Capture (ถูกซ่อนไว้ด้วย CSS) -->
+    <div id="branding-capture" style="position: absolute; left: -9999px;">
+        <div class="report-header">
+            <h1>CORE-ANALYZER ANALYTICS</h1>
+            <p>Cross-Domain Disaster Signature</p>
         </div>
-        <button class="btn-scan" onclick="manualScan()">Process Layers</button>
-        <button class="btn-export" onclick="exportBrandedReport()">📊 Branded Export</button>
-        
-        <div class="control-item" style="border-top: 1px solid #444; margin-top: 15px; padding-top: 10px;">
-            <label>Subscribe Feed</label>
-            <div style="display: flex; gap: 5px;">
-                <a href="/feed/rss" class="btn-feed rss">RSS</a>
-                <a href="/feed/atom" class="btn-feed atom">Atom</a>
-            </div>
+        <div id="snapshot-body">
+            <!-- ข้อมูลสรุปจะถูกฉีดเข้าที่นี่ก่อน Capture -->
         </div>
-        <div class="log-container" id="event-log">> Initializing...</div>
-    </aside>
-
-    <div id="branding-capture" style="position: fixed; top: -3000px; width: 1200px; background: white; padding: 40px;">
-        <div style="display: flex; align-items: center; border-bottom: 5px solid #0078ff; padding-bottom: 20px;">
-            <img src="myicon.png" style="width: 100px; height: 100px;">
-            <div style="margin-left: 25px;">
-                <h1 style="margin: 0; font-size: 32px;">CORE-ANALYZER ANALYTICS</h1>
-                <p style="margin: 0; color: #666;">Storm Signature & Air Quality Tracking System</p>
-            </div>
+        <div class="report-footer">
+            Date: <span id="snapshot-date"></span>
         </div>
-        <div id="snapshot-body" style="margin-top: 25px;"></div>
-        <p style="text-align: right; color: #888;">Analyst: Charaswat AI | Date: <span id="snapshot-date"></span></p>
     </div>
-	<button id="captureBtn" class="capture-btn">📸</button>
-    <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"></script>
+	
     <script src="script.js"></script>
 </body>
 </html>
