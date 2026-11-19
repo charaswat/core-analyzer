@@ -4,7 +4,7 @@ const state = {
     lat: 13.9918,
     lon: 110.6035,
     zoom: 5,
-    opacity: 20
+    opacity: 80
 };
 
 // Elements
