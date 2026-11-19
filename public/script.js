@@ -4,7 +4,7 @@ const state = {
     lat: 13.9918,
     lon: 110.6035,
     zoom: 5,
-    opacity: 80
+    opacity: 10
 };
 
 // Elements
@@ -120,13 +120,13 @@ document.addEventListener('DOMContentLoaded', () => {
 	if (opacityCtrl) {
 		opacityCtrl.addEventListener('input', (e) => updateUIOpacity(e.target.value));
 		// 3. Initial Setup
-		updateUIOpacity(20);
+		updateUIOpacity(10);
 		recordLog("System Initialized at 20% Opacity");
 	}
 }); 
 // Initial Setup 
 opacityCtrl.addEventListener('input', (e) => updateUIOpacity(e.target.value)); 
-window.onload = () => { updateUIOpacity(20); recordLog("System Initialized at 20% Opacity"); };
+window.onload = () => { updateUIOpacity(10); recordLog("System Initialized at 10% Opacity"); };
 };
 
 function manualSync() { layers.forEach(iframe => { 
